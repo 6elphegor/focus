@@ -23,6 +23,8 @@ The width case is more complex, but the solution is similar. For each vector bef
 Together, the depthwise and widthwise sparsity methods are combined, and the resulting arch can be scaled arbitrarily depthwise or widthwise without sacrificing data efficiency. If the dataset is simpler than the model, then a smaller dense model can be extracted from the trained sparse model. Larger sparse models can find patterns that are hard for smaller models to find so training a large sparse model then extracting a dense model from that may result in better dataset modeling than just training the smaller dense model. Another benefit is that the sparse arch has fewer hyperparameters as the depth and width can be set to arbitrarily large values (infinite even but be careful with initialization) and the training process can find a smaller dense model (dynamic effective hyperparameters).
 Note: For the combined to perfectly generalize on the dataset, I had to change the regularization scale to be based on 32 examples rather than 64. The regularization factor is really ideally dependent on the amount of information in the dataset and the dataset had so much redundancy that the information content was less than the token count would seem to imply.
 
+![Data efficiency results: the model with layerwise and widthwise sparsity priors achieves perfect generalization on the dataset.](data_efficiency.png)
+
 A further research direction is weightwise sparsity on top of depthwise and widthwise, in which the weight matrices are given a sparsity prior in a similar manner as the layer focus and vector focus.
 
 This was written in haste so I may have unintentionally omitted important information or made errors in my description. In any case, the code should speak for itself.
