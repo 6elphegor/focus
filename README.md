@@ -25,6 +25,8 @@ Note: For the combined to perfectly generalize on the dataset, I had to change t
 
 ![Data efficiency results: the model with layerwise and widthwise sparsity priors achieves perfect generalization on the dataset.](data_efficiency.png)
 
+The figure above shows the combined architecture (layerwise + widthwise focus) reaching perfect generalization on the dataset, in contrast to the standard transformer baseline whose generalization gap widens as depth or width is scaled up.
+
 A further research direction is weightwise sparsity on top of depthwise and widthwise, in which the weight matrices are given a sparsity prior in a similar manner as the layer focus and vector focus.
 
 This was written in haste so I may have unintentionally omitted important information or made errors in my description. In any case, the code should speak for itself.
