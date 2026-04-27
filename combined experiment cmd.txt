@@ -1,0 +1,5 @@
+python3 train.py --fixed-train-file fixed_train_examples_64_lsb_first.txt --num-bits 8 --regularizer-examples 32 --optimizer
+  adamw --learning-rate 0.03 --lr-schedule cosine --train-iterations 5000 --d-model 128 --d-ff 512 --d-attn 128 --num-layers 4
+  --architectures canonical_combined canonical_baseline --out-dir runs/combined_perfect_generalization_L4_d128_reg32
+  
+  
