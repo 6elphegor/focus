@@ -1,0 +1,32 @@
+The objective of this research is to investigate methods of improving the data efficiency of LLMs.
+
+dataset_spec.md specifies the dataset for this research
+loss_derivation.md shows why regularization should be divided by the size of the entire dataset
+
+Data efficiency/generalization is my favorite line of research because it ties in directly to a model's intrinsic epistemology, which is one of my special interests. My prior research established a solution to context length generalization, while this research is about data efficiency more generally.
+
+The canonical arch is the standard dense single head attention transformer with corrected attention and hybrid attention layers for context length generalization. This is used as the baseline for comparison.
+
+I predicted and observed that transformers become less data efficient as their depth or width is scaled. The ablation_plots.png shows this. This can be counteracted by scaling the dataset along with the model, as the AI labs do, but this comes at an immense cost as massive datasets must be collected and filtered along with the massive energy and compute expenditure used to train.
+
+The reason for the inverse data efficiency scaling is the prior that models implicitly encode. A randomly initialized small model has less expected functional/effective complexity than a very large overparameterized one. The expected effective complexity of a model scales along with model size, for both depth and width, and results in a more complex prior and a worse intrinsic epistemology for the LLM. The solution is to design the architecture in a way that the expected effective complexity remains bounded as the model scales. The effective complexity of a standard transformer initialized according to the standard normal distribution goes to inf as the model scale goes to inf. A proper solution should have the property that as the model scales to inf in either depth or width, the effective complexity converges to a finite number. Algorithmic information theory has this property (universal prior).
+
+I solved this for depth with a normalized softmax. lscale = l2normalize(softmax(lambda))
+Multiply the ith layer output by lscale[i].
+The regularization for lscale is 1/sum(lscale^4), that is, the inverse of the sum of elements to the 4th power. The intuition is that this measures the effective number of layers imposed by lscale. If lambda is uniform, then each element of the softmax is 1/num layers, lscale being 1/sqrt(num layers), sum of the 4th powers 1/num layers, the inverse being then number of layers. If the softmax is focused on a single layer, then it works out to 1. lambda is implicitly regularized by the regularization on lscale, the other weights being L2 regularized (0.5 w^2). lscale is called the layer focus and it acts as a depthwise sparsity prior.
+
+
+A pernicious issue with standard transformers is that the weight magnitudes are underdetermined. The layernorm before the logit projection largely dissolves the effectiveness of L2 regularization on the weight, as the weights can vanish to 0, improving the regularization while maintaining the functionality of the network as the layernorm before the projection "corrects" for the smaller input magnitude. L2 regularization then becomes mostly meaningless in the limit as the weights decay to 0. I corrected this by removing the layernorm before the projection and dividing by a factor that makes the initialization variance 1, recovering the effectiveness of the L2 weight regularization in the training limit.
+
+The width case is more complex, but the solution is similar. For each vector before a matmul, add a focus=l2normalize(softmax(lam)) and elementwise multiply it with the vector before matrix multiplying. Do not divide by sqrt(vector dims) for variance control because the focus completely handles variance control on its own. The focus acts as a widthwise sparsity prior, with the same regularization as the layerwise focus.
+
+Together, the depthwise and widthwise sparsity methods are combined, and the resulting arch can be scaled arbitrarily depthwise or widthwise without sacrificing data efficiency. If the dataset is simpler than the model, then a smaller dense model can be extracted from the trained sparse model. Larger sparse models can find patterns that are hard for smaller models to find so training a large sparse model then extracting a dense model from that may result in better dataset modeling than just training the smaller dense model. Another benefit is that the sparse arch has fewer hyperparameters as the depth and width can be set to arbitrarily large values (infinite even but be careful with initialization) and the training process can find a smaller dense model (dynamic effective hyperparameters).
+Note: For the combined to perfectly generalize on the dataset, I had to change the regularization scale to be based on 32 examples rather than 64. The regularization factor is really ideally dependent on the amount of information in the dataset and the dataset had so much redundancy that the information content was less than the token count would seem to imply.
+
+![Data efficiency results: the model with layerwise and widthwise sparsity priors achieves perfect generalization on the dataset.](data_efficiency.png)
+
+The figure above shows the combined architecture (layerwise + widthwise focus) reaching perfect generalization on the dataset, in contrast to the standard transformer baseline whose generalization gap widens as depth or width is scaled up.
+
+A further research direction is weightwise sparsity on top of depthwise and widthwise, in which the weight matrices are given a sparsity prior in a similar manner as the layer focus and vector focus.
+
+This was written in haste so I may have unintentionally omitted important information or made errors in my description. In any case, the code should speak for itself.
